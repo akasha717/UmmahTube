@@ -6,10 +6,23 @@ export default function Home() {
     const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
-  }, []);
+  // Get current user on load
+  supabase.auth.getUser().then(({ data }) => {
+    setUser(data.user);
+  });
+
+  // Listen for login/logout changes
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null);
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
+
 
   return (
     <main style={{ padding: "2rem" }}>
@@ -58,6 +71,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 
