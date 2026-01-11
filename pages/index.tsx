@@ -3,6 +3,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Home() {
+    const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
+  }, []);
+
   return (
     <main style={{ padding: "2rem" }}>
       <header
@@ -38,4 +46,5 @@ export default function Home() {
     </main>
   );
 }
+
 
