@@ -22,7 +22,19 @@ export default function Home() {
         }}
       >
         <h1>UmmahTube</h1>
-        <Link href="/login">Login</Link>
+        {user ? (
+  <button
+    onClick={async () => {
+      await supabase.auth.signOut();
+      location.reload();
+    }}
+  >
+    Logout
+  </button>
+) : (
+  <Link href="/login">Login</Link>
+)}
+
       </header>
 
       <p>Halal video platform for the Ummah</p>
@@ -46,5 +58,6 @@ export default function Home() {
     </main>
   );
 }
+
 
 
