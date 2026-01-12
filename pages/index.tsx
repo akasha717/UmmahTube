@@ -7,82 +7,63 @@ declare global {
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
+type Video = {
+  id: number
+  title: string
+  description: string
+  video_url: string
+  category: string
+  user_id: string
+  likes: number
+}
+
 export default function Home() {
   const [session, setSession] = useState<any>(null)
-
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
-  const [videos, setVideos] = useState<any[]>([])
-  const [likes, setLikes] = useState<any>({})
-  const [comments, setComments] = useState<any>({})
-  const [commentText, setCommentText] = useState<any>({})
-
+  const [videos, setVideos] = useState<Video[]>([])
   const [search, setSearch] = useState('')
-  const [creatorView, setCreatorView] = useState<any>(null)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('Qur’an')
 
-  // ---------------- AUTH ----------------
+  // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
     })
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => setSession(session)
+    )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
-  // ---------------- LOAD VIDEOS ----------------
+  // Load Cloudinary
+  useEffect(() => {
+    const s = document.createElement('script')
+    s.src = 'https://widget.cloudinary.com/v2.0/global/all.js'
+    s.async = true
+    document.body.appendChild(s)
+  }, [])
+
+  // Load videos
   const loadVideos = async () => {
     const { data } = await supabase
       .from('videos')
-      .select('*, profiles(username)')
-      .order('created_at', { ascending: false })
+      .select('*')
+      .order('id', { ascending: false })
 
-    setVideos(data || [])
-
-    const likesCount: any = {}
-    const commentsMap: any = {}
-
-    for (const v of data || []) {
-      const { count } = await supabase
-        .from('likes')
-        .select('*', { count: 'exact', head: true })
-        .eq('video_id', v.id)
-
-      likesCount[v.id] = count || 0
-
-      const { data: c } = await supabase
-        .from('comments')
-        .select('*, profiles(username)')
-        .eq('video_id', v.id)
-
-      commentsMap[v.id] = c || []
-    }
-
-    setLikes(likesCount)
-    setComments(commentsMap)
+    if (data) setVideos(data)
   }
 
   useEffect(() => {
     loadVideos()
   }, [])
 
-  // ---------------- CLOUDINARY ----------------
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://widget.cloudinary.com/v2.0/global/all.js'
-    script.async = true
-    document.body.appendChild(script)
-  }, [])
-
-  const openUploadWidget = () => {
-    if (!session) return alert('Login first')
-
+  // Upload
+  const openUpload = () => {
     window.cloudinary.openUploadWidget(
       {
         cloudName: 'dzcha20pc',
@@ -90,163 +71,165 @@ export default function Home() {
         resourceType: 'video',
       },
       async (_: any, result: any) => {
-        if (result.event === 'success') {
-          const title = prompt('Video title?') || ''
-          const description = prompt('Description?') || ''
-          const category = prompt('Category (Quran / Hadith / Dawah)') || 'Dawah'
-
+        if (result?.event === 'success') {
           await supabase.from('videos').insert({
-            user_id: session.user.id,
             title,
             description,
             category,
             video_url: result.info.secure_url,
+            user_id: session.user.id,
+            likes: 0,
           })
 
+          setTitle('')
+          setDescription('')
           loadVideos()
         }
       }
     )
   }
 
-  // ---------------- ACTIONS ----------------
-  const likeVideo = async (videoId: string) => {
-    if (!session) return
+  const likeVideo = async (id: number, current: number) => {
+    await supabase
+      .from('videos')
+      .update({ likes: current + 1 })
+      .eq('id', id)
 
-    await supabase.from('likes').insert({
-      user_id: session.user.id,
-      video_id: videoId,
-    })
-
-    setLikes({ ...likes, [videoId]: (likes[videoId] || 0) + 1 })
+    loadVideos()
   }
 
-  const addComment = async (videoId: string) => {
-    if (!session || !commentText[videoId]) return
+  const filtered = videos.filter((v) =>
+    v.title.toLowerCase().includes(search.toLowerCase())
+  )
 
-    const { data } = await supabase
-      .from('comments')
-      .insert({
-        user_id: session.user.id,
-        video_id: videoId,
-        content: commentText[videoId],
-      })
-      .select('*, profiles(username)')
-      .single()
-
-    setComments({
-      ...comments,
-      [videoId]: [...(comments[videoId] || []), data],
-    })
-
-    setCommentText({ ...commentText, [videoId]: '' })
-  }
-
-  const signIn = async () =>
-    supabase.auth.signInWithPassword({ email, password })
-
-  const signUp = async () =>
-    supabase.auth.signUp({ email, password })
-
-  const signOut = async () => supabase.auth.signOut()
-
-  // ---------------- CREATOR PAGE ----------------
-  if (creatorView) {
-    return (
-      <main style={{ background: '#020617', color: '#e5e7eb', minHeight: '100vh', padding: 40, textAlign: 'center' }}>
-        <h1 style={{ fontSize: 48, color: '#22d3ee' }}>
-          @{creatorView.username}
-        </h1>
-
-        <button onClick={() => setCreatorView(null)}>← Back</button>
-
-        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 30 }}>
-          {videos
-            .filter(v => v.user_id === creatorView.id)
-            .map(v => (
-              <div key={v.id} style={{ width: 300 }}>
-                <video src={v.video_url} controls width="100%" />
-                <h3>{v.title}</h3>
-              </div>
-            ))}
-        </div>
-      </main>
-    )
-  }
-
-  // ---------------- MAIN UI ----------------
   return (
-    <main style={{ background: '#020617', color: '#e5e7eb', minHeight: '100vh', padding: 40, textAlign: 'center' }}>
-      <h1 style={{ fontSize: 72, color: '#22d3ee', marginBottom: 10 }}>
+    <main
+      style={{
+        minHeight: '100vh',
+        padding: 40,
+        fontFamily: 'system-ui',
+        background:
+          'radial-gradient(circle at top, #0f172a, #020617), repeating-linear-gradient(45deg, rgba(34,211,238,0.05) 0 2px, transparent 2px 20px)',
+        color: '#e5e7eb',
+      }}
+    >
+      {/* TITLE */}
+      <h1
+        style={{
+          fontSize: 72,
+          textAlign: 'center',
+          color: '#22d3ee',
+          letterSpacing: 2,
+        }}
+      >
         UmmahTube
       </h1>
-      <p style={{ color: '#94a3b8', marginBottom: 30 }}>
-        A halal video platform for the Ummah
+
+      <p style={{ textAlign: 'center', marginBottom: 30 }}>
+        A halal home for Islamic videos
       </p>
 
-      {!session && (
-        <div>
-          <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
-          <input placeholder="Password" type="password" onChange={e => setPassword(e.target.value)} />
-          <br /><br />
-          <button onClick={signIn}>Login</button>
-          <button onClick={signUp}>Sign up</button>
-        </div>
-      )}
-
-      {session && (
-        <div>
-          <button onClick={signOut}>Logout</button>
-          <button onClick={openUploadWidget}>Upload Video</button>
-        </div>
-      )}
-
-      <div style={{ marginTop: 30 }}>
+      {/* SEARCH */}
+      <div style={{ textAlign: 'center', marginBottom: 30 }}>
         <input
-          placeholder="Search videos..."
-          onChange={e => setSearch(e.target.value)}
-          style={{ width: 300 }}
+          placeholder="Search videos…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            padding: 12,
+            width: 300,
+            borderRadius: 20,
+            border: 'none',
+          }}
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', overflowX: 'auto', marginTop: 40 }}>
-        {videos
-          .filter(v => v.title.toLowerCase().includes(search.toLowerCase()))
-          .map(v => (
-            <div key={v.id} style={{ minWidth: 320, border: '1px solid #334155', padding: 14 }}>
-              <video src={v.video_url} controls width="300" />
-              <h3>{v.title}</h3>
-              <p>{v.description}</p>
-              <p>📂 {v.category}</p>
+      {/* UPLOAD */}
+      {session && (
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <input
+            placeholder="Video title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <br />
+          <textarea
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <br />
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option>Qur’an</option>
+            <option>Hadith</option>
+            <option>Da’wah</option>
+          </select>
+          <br />
+          <button onClick={openUpload}>Upload Video</button>
+        </div>
+      )}
 
-              <p
-                style={{ color: '#38bdf8', cursor: 'pointer' }}
-                onClick={() => setCreatorView(v.profiles)}
-              >
-                @{v.profiles?.username}
-              </p>
+      {/* VIDEOS */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 20,
+          overflowX: 'auto',
+          paddingBottom: 20,
+        }}
+      >
+        {filtered.map((v) => (
+          <div
+            key={v.id}
+            style={{
+              minWidth: 280,
+              background: '#020617',
+              borderRadius: 12,
+              padding: 12,
+            }}
+          >
+            <video
+              src={v.video_url}
+              controls
+              style={{ width: '100%', borderRadius: 8 }}
+            />
+            <h3>{v.title}</h3>
+            <p style={{ fontSize: 14 }}>{v.description}</p>
+            <p style={{ color: '#22d3ee' }}>{v.category}</p>
 
-              <button onClick={() => likeVideo(v.id)}>
-                ❤️ {likes[v.id] || 0}
-              </button>
-
-              {comments[v.id]?.map((c: any) => (
-                <p key={c.id}><b>@{c.profiles?.username}</b> {c.content}</p>
-              ))}
-
-              {session && (
-                <>
-                  <input
-                    placeholder="Comment..."
-                    value={commentText[v.id] || ''}
-                    onChange={e => setCommentText({ ...commentText, [v.id]: e.target.value })}
-                  />
-                  <button onClick={() => addComment(v.id)}>Post</button>
-                </>
-              )}
-            </div>
-          ))}
+            <button onClick={() => likeVideo(v.id, v.likes)}>
+              ❤️ {v.likes}
+            </button>
+          </div>
+        ))}
       </div>
+
+      {/* FOOTER */}
+      <footer
+        style={{
+          marginTop: 80,
+          textAlign: 'center',
+          animation: 'fadeIn 3s infinite alternate',
+        }}
+      >
+        <p>
+          Supported by{' '}
+          <span style={{ color: '#22d3ee' }}>Suleiman Maumo</span>
+        </p>
+        <p style={{ fontSize: 14 }}>
+          © {new Date().getFullYear()} UmmahTube
+        </p>
+
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0.5 }
+            to { opacity: 1 }
+          }
+        `}</style>
+      </footer>
     </main>
   )
 }
