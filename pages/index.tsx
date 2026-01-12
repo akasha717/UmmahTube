@@ -13,6 +13,7 @@ interface Video {
   description: string
   video_url: string
   category: string
+  creator_email: string
   likes: number
 }
 
@@ -27,6 +28,7 @@ export default function Home() {
 
   const [videos, setVideos] = useState<Video[]>([])
   const [liked, setLiked] = useState<Record<string, boolean>>({})
+  const [search, setSearch] = useState('')
 
   // Auth
   useEffect(() => {
@@ -68,12 +70,23 @@ export default function Home() {
       likeCount[l.video_id] = (likeCount[l.video_id] || 0) + 1
     })
 
-    setVideos(
-      vids.map(v => ({
-        ...v,
-        likes: likeCount[v.id] || 0,
-      }))
+    const enriched = await Promise.all(
+      vids.map(async v => {
+        const { data: user } = await supabase
+          .from('auth.users')
+          .select('email')
+          .eq('id', v.user_id)
+          .single()
+
+        return {
+          ...v,
+          creator_email: user?.email || 'Unknown',
+          likes: likeCount[v.id] || 0,
+        }
+      })
     )
+
+    setVideos(enriched)
 
     if (session) {
       const { data: myLikes } = await supabase
@@ -91,7 +104,7 @@ export default function Home() {
     loadVideos()
   }, [session])
 
-  // Auth actions
+  // Auth
   const signIn = async () => {
     await supabase.auth.signInWithPassword({ email, password })
   }
@@ -129,13 +142,12 @@ export default function Home() {
     )
   }
 
-  // Like / Unlike
+  // Like
   const toggleLike = async (videoId: string) => {
     if (!session) return
 
     if (liked[videoId]) {
-      await supabase
-        .from('video_likes')
+      await supabase.from('video_likes')
         .delete()
         .eq('video_id', videoId)
         .eq('user_id', session.user.id)
@@ -148,18 +160,31 @@ export default function Home() {
     loadVideos()
   }
 
+  const filtered = videos.filter(v =>
+    `${v.title} ${v.description} ${v.category}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  )
+
   return (
-    <div style={{ background: '#f0fdf4', minHeight: '100vh' }}>
+    <div style={app}>
       <header style={header}>
-        <h1>🕌 UmmahTube</h1>
-        <p>Halal videos for the Ummah</p>
+        <h1 style={logo}>🕌 UMMAHTUBE</h1>
+        <p style={tagline}>Islamic knowledge • Da‘awah • Unity</p>
+
+        <input
+          style={searchBox}
+          placeholder="🔍 Search Qur’an, Hadith, Da‘awah..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </header>
 
-      <main style={{ padding: 20 }}>
+      <main style={{ padding: 30 }}>
         {!session && (
           <div style={card}>
-            <input style={input} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-            <input style={input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+            <input style={input} placeholder="Email" onChange={e => setEmail(e.target.value)} />
+            <input style={input} type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
             <button style={btn} onClick={signIn}>Login</button>
             <button style={btnAlt} onClick={signUp}>Sign up</button>
           </div>
@@ -180,18 +205,16 @@ export default function Home() {
           </div>
         )}
 
-        <h2 style={{ margin: '30px 0' }}>📺 Videos</h2>
-
         <div style={grid}>
-          {videos.map(v => (
+          {filtered.map(v => (
             <div key={v.id} style={videoCard}>
               <span style={badge}>{v.category}</span>
-              <h4>{v.title}</h4>
+              <h3>{v.title}</h3>
+              <p style={creator}>👤 {v.creator_email}</p>
               <video controls style={{ width: '100%', borderRadius: 12 }}>
                 <source src={v.video_url} />
               </video>
-              <p style={{ fontSize: 14 }}>{v.description}</p>
-
+              <p>{v.description}</p>
               <button style={likeBtn} onClick={() => toggleLike(v.id)}>
                 ❤️ {v.likes}
               </button>
@@ -201,82 +224,112 @@ export default function Home() {
       </main>
 
       <footer style={footer}>
-        Supported by Suleiman Maumo
+        © UmmahTube • Built by Suleiman Maumo
       </footer>
     </div>
   )
 }
 
-/* 🎨 STYLES */
+/* 🎨 THEME */
+const app = {
+  background: 'linear-gradient(180deg, #020617, #064e3b)',
+  minHeight: '100vh',
+  color: '#ecfeff',
+}
+
 const header = {
-  background: 'linear-gradient(90deg, #16a34a, #22c55e)',
-  color: 'white',
-  padding: 30,
   textAlign: 'center' as const,
+  padding: 40,
+}
+
+const logo = {
+  fontSize: 52,
+  letterSpacing: 3,
+  color: '#22c55e',
+}
+
+const tagline = {
+  fontSize: 18,
+  opacity: 0.9,
+}
+
+const searchBox = {
+  marginTop: 20,
+  padding: 14,
+  width: '80%',
+  maxWidth: 500,
+  borderRadius: 999,
+  border: 'none',
+  fontSize: 16,
 }
 
 const grid = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: 20,
+  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+  gap: 24,
 }
 
 const card = {
-  background: 'white',
-  padding: 20,
-  borderRadius: 16,
-  boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+  background: '#022c22',
+  padding: 24,
+  borderRadius: 20,
   marginBottom: 30,
 }
 
 const videoCard = {
-  ...card,
+  background: '#022c22',
+  padding: 20,
+  borderRadius: 20,
 }
 
 const badge = {
-  background: '#fde68a',
+  background: '#facc15',
+  color: '#000',
   padding: '4px 10px',
   borderRadius: 999,
   fontSize: 12,
-  display: 'inline-block',
-  marginBottom: 6,
+}
+
+const creator = {
+  fontSize: 13,
+  opacity: 0.8,
 }
 
 const input = {
   width: '100%',
-  padding: 10,
+  padding: 12,
   marginBottom: 10,
-  borderRadius: 8,
-  border: '1px solid #ccc',
+  borderRadius: 10,
+  border: 'none',
 }
 
 const btn = {
-  background: '#16a34a',
-  color: 'white',
-  padding: '10px 16px',
-  borderRadius: 8,
+  background: '#22c55e',
+  color: '#022c22',
+  padding: '10px 18px',
+  borderRadius: 10,
   border: 'none',
   cursor: 'pointer',
   marginRight: 8,
 }
 
 const btnAlt = {
-  background: '#e0f2fe',
-  color: '#0369a1',
-  padding: '10px 16px',
-  borderRadius: 8,
+  background: '#38bdf8',
+  color: '#022c22',
+  padding: '10px 18px',
+  borderRadius: 10,
   border: 'none',
   cursor: 'pointer',
 }
 
 const likeBtn = {
-  background: '#fee2e2',
-  color: '#991b1b',
+  background: '#f43f5e',
+  color: 'white',
   border: 'none',
   borderRadius: 999,
-  padding: '6px 12px',
+  padding: '8px 14px',
+  marginTop: 10,
   cursor: 'pointer',
-  marginTop: 8,
 }
 
 const footer = {
