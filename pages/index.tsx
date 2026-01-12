@@ -57,7 +57,7 @@ export default function Home() {
 
     window.cloudinary.openUploadWidget(
       {
-        cloudName: 'PUT_YOUR_CLOUD_NAME_HERE',
+        cloudName: 'dzcha20pc',
         uploadPreset: 'unsigned_videos',
         resourceType: 'video',
         sources: ['local'],
@@ -138,4 +138,5 @@ export default function Home() {
     </main>
   )
 }
+
 
