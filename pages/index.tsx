@@ -13,6 +13,7 @@ interface Video {
   description: string
   video_url: string
   category: string
+  likes: number
 }
 
 export default function Home() {
@@ -23,10 +24,11 @@ export default function Home() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('Quran')
-  const [videos, setVideos] = useState<Video[]>([])
-  const [comments, setComments] = useState<any>({})
-  const [commentText, setCommentText] = useState('')
 
+  const [videos, setVideos] = useState<Video[]>([])
+  const [liked, setLiked] = useState<Record<string, boolean>>({})
+
+  // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
@@ -40,36 +42,56 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Cloudinary
   useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://widget.cloudinary.com/v2.0/global/all.js'
-    script.async = true
-    document.body.appendChild(script)
+    const s = document.createElement('script')
+    s.src = 'https://widget.cloudinary.com/v2.0/global/all.js'
+    s.async = true
+    document.body.appendChild(s)
   }, [])
 
+  // Load videos + likes
   const loadVideos = async () => {
-    const { data } = await supabase
+    const { data: vids } = await supabase
       .from('videos')
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (data) setVideos(data)
-  }
+    if (!vids) return
 
-  const loadComments = async (videoId: string) => {
-    const { data } = await supabase
-      .from('video_comments')
-      .select('*')
-      .eq('video_id', videoId)
-      .order('created_at')
+    const { data: likes } = await supabase
+      .from('video_likes')
+      .select('video_id')
 
-    setComments((prev: any) => ({ ...prev, [videoId]: data }))
+    const likeCount: Record<string, number> = {}
+    likes?.forEach(l => {
+      likeCount[l.video_id] = (likeCount[l.video_id] || 0) + 1
+    })
+
+    setVideos(
+      vids.map(v => ({
+        ...v,
+        likes: likeCount[v.id] || 0,
+      }))
+    )
+
+    if (session) {
+      const { data: myLikes } = await supabase
+        .from('video_likes')
+        .select('video_id')
+        .eq('user_id', session.user.id)
+
+      const likedMap: any = {}
+      myLikes?.forEach(l => (likedMap[l.video_id] = true))
+      setLiked(likedMap)
+    }
   }
 
   useEffect(() => {
     loadVideos()
-  }, [])
+  }, [session])
 
+  // Auth actions
   const signIn = async () => {
     await supabase.auth.signInWithPassword({ email, password })
   }
@@ -82,6 +104,7 @@ export default function Home() {
     await supabase.auth.signOut()
   }
 
+  // Upload
   const openUploadWidget = () => {
     window.cloudinary.openUploadWidget(
       {
@@ -98,7 +121,6 @@ export default function Home() {
             category,
             video_url: result.info.secure_url,
           })
-
           setTitle('')
           setDescription('')
           loadVideos()
@@ -107,31 +129,39 @@ export default function Home() {
     )
   }
 
-  const addComment = async (videoId: string) => {
-    if (!commentText) return
-    await supabase.from('video_comments').insert({
-      video_id: videoId,
-      user_id: session.user.id,
-      comment: commentText,
-    })
-    setCommentText('')
-    loadComments(videoId)
+  // Like / Unlike
+  const toggleLike = async (videoId: string) => {
+    if (!session) return
+
+    if (liked[videoId]) {
+      await supabase
+        .from('video_likes')
+        .delete()
+        .eq('video_id', videoId)
+        .eq('user_id', session.user.id)
+    } else {
+      await supabase.from('video_likes').insert({
+        video_id: videoId,
+        user_id: session.user.id,
+      })
+    }
+    loadVideos()
   }
 
   return (
-    <div style={{ background: '#f5f7f6', minHeight: '100vh' }}>
-      <header style={{ background: '#065f46', color: 'white', padding: 20, textAlign: 'center' }}>
+    <div style={{ background: '#f0fdf4', minHeight: '100vh' }}>
+      <header style={header}>
         <h1>🕌 UmmahTube</h1>
-        <p>Islamic video platform</p>
+        <p>Halal videos for the Ummah</p>
       </header>
 
-      <main style={{ maxWidth: 900, margin: 'auto', padding: 20 }}>
+      <main style={{ padding: 20 }}>
         {!session && (
           <div style={card}>
             <input style={input} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
             <input style={input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
             <button style={btn} onClick={signIn}>Login</button>
-            <button style={btnOutline} onClick={signUp}>Sign up</button>
+            <button style={btnAlt} onClick={signUp}>Sign up</button>
           </div>
         )}
 
@@ -143,57 +173,73 @@ export default function Home() {
             <select style={input} value={category} onChange={e => setCategory(e.target.value)}>
               <option>Quran</option>
               <option>Hadith</option>
+              <option>Daawah</option>
             </select>
             <button style={btn} onClick={openUploadWidget}>Upload</button>
-            <button style={btnOutline} onClick={signOut}>Logout</button>
+            <button style={btnAlt} onClick={signOut}>Logout</button>
           </div>
         )}
 
-        {videos.map(video => (
-          <div key={video.id} style={card}>
-            <span style={{ fontSize: 12, color: '#065f46' }}>{video.category}</span>
-            <h3>{video.title}</h3>
-            <p>{video.description}</p>
-            <video controls style={{ width: '100%', borderRadius: 12 }}>
-              <source src={video.video_url} />
-            </video>
+        <h2 style={{ margin: '30px 0' }}>📺 Videos</h2>
 
-            <button onClick={() => loadComments(video.id)} style={btnOutline}>
-              Load comments
-            </button>
+        <div style={grid}>
+          {videos.map(v => (
+            <div key={v.id} style={videoCard}>
+              <span style={badge}>{v.category}</span>
+              <h4>{v.title}</h4>
+              <video controls style={{ width: '100%', borderRadius: 12 }}>
+                <source src={v.video_url} />
+              </video>
+              <p style={{ fontSize: 14 }}>{v.description}</p>
 
-            {comments[video.id]?.map((c: any) => (
-              <p key={c.id}>💬 {c.comment}</p>
-            ))}
-
-            {session && (
-              <>
-                <input
-                  style={input}
-                  placeholder="Write a comment"
-                  value={commentText}
-                  onChange={e => setCommentText(e.target.value)}
-                />
-                <button style={btn} onClick={() => addComment(video.id)}>Comment</button>
-              </>
-            )}
-          </div>
-        ))}
+              <button style={likeBtn} onClick={() => toggleLike(v.id)}>
+                ❤️ {v.likes}
+              </button>
+            </div>
+          ))}
+        </div>
       </main>
 
-      <footer style={{ textAlign: 'center', padding: 20, opacity: 0.6 }}>
+      <footer style={footer}>
         Supported by Suleiman Maumo
       </footer>
     </div>
   )
 }
 
+/* 🎨 STYLES */
+const header = {
+  background: 'linear-gradient(90deg, #16a34a, #22c55e)',
+  color: 'white',
+  padding: 30,
+  textAlign: 'center' as const,
+}
+
+const grid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+  gap: 20,
+}
+
 const card = {
   background: 'white',
   padding: 20,
   borderRadius: 16,
-  boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+  boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
   marginBottom: 30,
+}
+
+const videoCard = {
+  ...card,
+}
+
+const badge = {
+  background: '#fde68a',
+  padding: '4px 10px',
+  borderRadius: 999,
+  fontSize: 12,
+  display: 'inline-block',
+  marginBottom: 6,
 }
 
 const input = {
@@ -205,7 +251,7 @@ const input = {
 }
 
 const btn = {
-  background: '#065f46',
+  background: '#16a34a',
   color: 'white',
   padding: '10px 16px',
   borderRadius: 8,
@@ -214,11 +260,27 @@ const btn = {
   marginRight: 8,
 }
 
-const btnOutline = {
-  background: 'transparent',
-  color: '#065f46',
+const btnAlt = {
+  background: '#e0f2fe',
+  color: '#0369a1',
   padding: '10px 16px',
   borderRadius: 8,
-  border: '2px solid #065f46',
+  border: 'none',
   cursor: 'pointer',
+}
+
+const likeBtn = {
+  background: '#fee2e2',
+  color: '#991b1b',
+  border: 'none',
+  borderRadius: 999,
+  padding: '6px 12px',
+  cursor: 'pointer',
+  marginTop: 8,
+}
+
+const footer = {
+  textAlign: 'center' as const,
+  padding: 20,
+  opacity: 0.7,
 }
