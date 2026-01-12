@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+declare global {
+  interface Window {
+    cloudinary: any
+  }
+}
+
 
 export default function Home() {
   const [session, setSession] = useState<any>(null)
@@ -37,6 +43,30 @@ export default function Home() {
   const signOut = async () => {
     await supabase.auth.signOut()
   }
+  const openUploadWidget = () => {
+  if (!window.cloudinary) {
+    alert('Cloudinary not loaded')
+    return
+  }
+
+  window.cloudinary.openUploadWidget(
+    {
+      cloudName: 'PASTE_YOUR_CLOUD_NAME_HERE',
+      uploadPreset: 'unsigned_videos',
+      sources: ['local'],
+      resourceType: 'video',
+      multiple: false,
+      maxFileSize: 200000000, // 200MB
+    },
+    (error: any, result: any) => {
+      if (!error && result && result.event === 'success') {
+        console.log('Video uploaded:', result.info.secure_url)
+        alert('Video uploaded successfully!')
+      }
+    }
+  )
+}
+
 
   return (
     <main style={{ padding: '40px', fontFamily: 'sans-serif' }}>
@@ -101,4 +131,5 @@ export default function Home() {
     </main>
   )
 }
+
 
