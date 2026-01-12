@@ -47,6 +47,21 @@ export default function Home() {
 ) : (
   <Link href="/login">Login</Link>
 )}
+{session && (
+  <button
+    style={{
+      padding: '10px 16px',
+      marginTop: '12px',
+      backgroundColor: '#0f766e',
+      color: 'white',
+      borderRadius: '8px',
+      border: 'none',
+      cursor: 'pointer'
+    }}
+  >
+    Upload Video
+  </button>
+)}
 
       </header>
 
@@ -71,6 +86,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 
