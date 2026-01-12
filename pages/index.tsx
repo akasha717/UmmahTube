@@ -210,7 +210,15 @@ export default function Home() {
             <div key={v.id} style={videoCard}>
               <span style={badge}>{v.category}</span>
               <h3>{v.title}</h3>
-              <p style={creator}>👤 {v.creator_email}</p>
+              <p style={creator}>
+  👤{' '}
+  <a
+    href={`/creator/${v.user_id}`}
+    style={{ color: '#38bdf8', textDecoration: 'none' }}
+  >
+    {v.creator_email}
+  </a>
+</p>
               <video controls style={{ width: '100%', borderRadius: 12 }}>
                 <source src={v.video_url} />
               </video>
@@ -337,3 +345,4 @@ const footer = {
   padding: 20,
   opacity: 0.7,
 }
+
