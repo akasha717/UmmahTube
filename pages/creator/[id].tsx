@@ -2,42 +2,51 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
-export default function Creator() {
-  const { query } = useRouter()
-  const id = query.id as string
-
-  const [profile, setProfile] = useState<any>(null)
+export default function CreatorPage() {
+  const router = useRouter()
+  const { id } = router.query
   const [videos, setVideos] = useState<any[]>([])
-  const [followers, setFollowers] = useState(0)
 
   useEffect(() => {
     if (!id) return
-    load()
+
+    supabase
+      .from('videos')
+      .select('*')
+      .eq('user_id', id)
+      .then(({ data }) => {
+        if (data) setVideos(data)
+      })
   }, [id])
 
-  const load = async () => {
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', id).single()
-    setProfile(p)
-
-    const { data: v } = await supabase.from('videos').select('*').eq('user_id', id)
-    setVideos(v || [])
-
-    const { count } = await supabase
-      .from('follows')
-      .select('*', { count: 'exact', head: true })
-      .eq('following_id', id)
-
-    setFollowers(count || 0)
-  }
-
   return (
-    <main style={{ padding: 40 }}>
-      <h1>{profile?.username}</h1>
-      <p>{followers} followers</p>
+    <main
+      style={{
+        minHeight: '100vh',
+        padding: 40,
+        background: '#020617',
+        color: '#e5e7eb',
+      }}
+    >
+      <h1 style={{ fontSize: 48, color: '#22d3ee' }}>
+        Creator Videos
+      </h1>
 
-      <div style={{ display: 'flex', gap: 20 }}>
-        {videos.map(v => (
-          <video key={v.id} src={v.video_url} controls width="260" />
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+        {videos.map((v) => (
+          <div
+            key={v.id}
+            style={{
+              width: 300,
+              background: '#020617',
+              borderRadius: 12,
+              padding: 12,
+            }}
+          >
+            <video src={v.video_url} controls style={{ width: '100%' }} />
+            <h3>{v.title}</h3>
+            <p>{v.category}</p>
+          </div>
         ))}
       </div>
     </main>
