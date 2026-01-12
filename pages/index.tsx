@@ -18,6 +18,30 @@ export default function Home() {
   } = supabase.auth.onAuthStateChange((_event, session) => {
     setUser(session?.user ?? null);
   });
+      export default function Home() {
+  const [session, setSession] = useState<any>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  return (
+    <>
+      {/* your JSX */}
+    </>
+  )
+}
+
 
   return () => {
     subscription.unsubscribe();
@@ -87,6 +111,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 
