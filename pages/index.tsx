@@ -6,343 +6,159 @@ declare global {
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
-
-interface Video {
-  id: string
-  title: string
-  description: string
-  video_url: string
-  category: string
-  creator_email: string
-  likes: number
-}
+import Link from 'next/link'
 
 export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('Quran')
-
-  const [videos, setVideos] = useState<Video[]>([])
-  const [liked, setLiked] = useState<Record<string, boolean>>({})
+  const [videos, setVideos] = useState<any[]>([])
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('All')
 
-  // Auth
+  // AUTH
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
     })
 
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange((_e, session) => {
-        setSession(session)
-      })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  // Cloudinary
-  useEffect(() => {
-    const s = document.createElement('script')
-    s.src = 'https://widget.cloudinary.com/v2.0/global/all.js'
-    s.async = true
-    document.body.appendChild(s)
-  }, [])
-
-  // Load videos + likes
-  const loadVideos = async () => {
-    const { data: vids } = await supabase
-      .from('videos')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (!vids) return
-
-    const { data: likes } = await supabase
-      .from('video_likes')
-      .select('video_id')
-
-    const likeCount: Record<string, number> = {}
-    likes?.forEach(l => {
-      likeCount[l.video_id] = (likeCount[l.video_id] || 0) + 1
-    })
-
-    const enriched = await Promise.all(
-      vids.map(async v => {
-        const { data: user } = await supabase
-          .from('auth.users')
-          .select('email')
-          .eq('id', v.user_id)
-          .single()
-
-        return {
-          ...v,
-          creator_email: user?.email || 'Unknown',
-          likes: likeCount[v.id] || 0,
-        }
-      })
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_e, s) => setSession(s)
     )
 
-    setVideos(enriched)
+    return () => listener.subscription.unsubscribe()
+  }, [])
 
-    if (session) {
-      const { data: myLikes } = await supabase
-        .from('video_likes')
-        .select('video_id')
-        .eq('user_id', session.user.id)
-
-      const likedMap: any = {}
-      myLikes?.forEach(l => (likedMap[l.video_id] = true))
-      setLiked(likedMap)
-    }
-  }
-
+  // LOAD VIDEOS
   useEffect(() => {
     loadVideos()
-  }, [session])
+  }, [category])
 
-  // Auth
-  const signIn = async () => {
-    await supabase.auth.signInWithPassword({ email, password })
+  const loadVideos = async () => {
+    let query = supabase
+      .from('videos')
+      .select('*, profiles(username)')
+      .order('created_at', { ascending: false })
+
+    if (category !== 'All') query = query.eq('category', category)
+
+    const { data } = await query
+    setVideos(data || [])
   }
 
-  const signUp = async () => {
-    await supabase.auth.signUp({ email, password })
-  }
+  // CLOUDINARY
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://widget.cloudinary.com/v2.0/global/all.js'
+    document.body.appendChild(script)
+  }, [])
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
-  }
-
-  // Upload
-  const openUploadWidget = () => {
+  const uploadVideo = () => {
     window.cloudinary.openUploadWidget(
       {
         cloudName: 'dzcha20pc',
         uploadPreset: 'unsigned_videos',
         resourceType: 'video',
       },
-      async (_e: any, result: any) => {
-        if (result?.event === 'success') {
+      async (_: any, result: any) => {
+        if (result.event === 'success') {
+          const title = prompt('Video title') || ''
+          const description = prompt('Description') || ''
+          const category = prompt('Category: Quran / Hadith / Daawah') || 'Daawah'
+
           await supabase.from('videos').insert({
-            user_id: session.user.id,
             title,
             description,
             category,
             video_url: result.info.secure_url,
+            user_id: session.user.id,
           })
-          setTitle('')
-          setDescription('')
+
           loadVideos()
         }
       }
     )
   }
 
-  // Like
-  const toggleLike = async (videoId: string) => {
-    if (!session) return
-
-    if (liked[videoId]) {
-      await supabase.from('video_likes')
-        .delete()
-        .eq('video_id', videoId)
-        .eq('user_id', session.user.id)
-    } else {
-      await supabase.from('video_likes').insert({
-        video_id: videoId,
-        user_id: session.user.id,
-      })
-    }
-    loadVideos()
-  }
-
-  const filtered = videos.filter(v =>
-    `${v.title} ${v.description} ${v.category}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  )
-
   return (
-    <div style={app}>
-      <header style={header}>
-        <h1 style={logo}>🕌 UMMAHTUBE</h1>
-        <p style={tagline}>Islamic knowledge • Da‘awah • Unity</p>
+    <main style={styles.main}>
+      <h1 style={styles.logo}>🟢 UmmahTube</h1>
 
-        <input
-          style={searchBox}
-          placeholder="🔍 Search Qur’an, Hadith, Da‘awah..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </header>
+      {!session && (
+        <div style={styles.authBox}>
+          <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
+          <input
+            type="password"
+            placeholder="Password"
+            onChange={e => setPassword(e.target.value)}
+          />
+          <button onClick={() => supabase.auth.signInWithPassword({ email, password })}>
+            Login
+          </button>
+          <button onClick={() => supabase.auth.signUp({ email, password })}>
+            Sign up
+          </button>
+        </div>
+      )}
 
-      <main style={{ padding: 30 }}>
-        {!session && (
-          <div style={card}>
-            <input style={input} placeholder="Email" onChange={e => setEmail(e.target.value)} />
-            <input style={input} type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
-            <button style={btn} onClick={signIn}>Login</button>
-            <button style={btnAlt} onClick={signUp}>Sign up</button>
-          </div>
-        )}
+      {session && (
+        <>
+          <button onClick={() => supabase.auth.signOut()}>Logout</button>
+          <button onClick={uploadVideo} style={styles.upload}>
+            Upload Video
+          </button>
+        </>
+      )}
 
-        {session && (
-          <div style={card}>
-            <h3>Upload Video</h3>
-            <input style={input} placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
-            <textarea style={input} placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
-            <select style={input} value={category} onChange={e => setCategory(e.target.value)}>
-              <option>Quran</option>
-              <option>Hadith</option>
-              <option>Daawah</option>
-            </select>
-            <button style={btn} onClick={openUploadWidget}>Upload</button>
-            <button style={btnAlt} onClick={signOut}>Logout</button>
-          </div>
-        )}
+      <input
+        placeholder="Search videos..."
+        onChange={e => setSearch(e.target.value)}
+        style={styles.search}
+      />
 
-        <div style={grid}>
-          {filtered.map(v => (
-            <div key={v.id} style={videoCard}>
-              <span style={badge}>{v.category}</span>
+      <div style={styles.categories}>
+        {['All', "Qur'an", 'Hadith', 'Daawah'].map(c => (
+          <button key={c} onClick={() => setCategory(c)}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      <div style={styles.row}>
+        {videos
+          .filter(v => v.title.toLowerCase().includes(search.toLowerCase()))
+          .map(v => (
+            <div key={v.id} style={styles.card}>
+              <video src={v.video_url} controls width="260" />
               <h3>{v.title}</h3>
-              <p style={creator}>
-  👤{' '}
-  <a
-    href={`/creator/${v.user_id}`}
-    style={{ color: '#38bdf8', textDecoration: 'none' }}
-  >
-    {v.creator_email}
-  </a>
-</p>
-              <video controls style={{ width: '100%', borderRadius: 12 }}>
-                <source src={v.video_url} />
-              </video>
-              <p>{v.description}</p>
-              <button style={likeBtn} onClick={() => toggleLike(v.id)}>
-                ❤️ {v.likes}
-              </button>
+              <p>{v.category}</p>
+              <Link href={`/creator/${v.user_id}`}>
+                @{v.profiles?.username}
+              </Link>
             </div>
           ))}
-        </div>
-      </main>
+      </div>
 
-      <footer style={footer}>
-        © UmmahTube • Built by Suleiman Maumo
+      <footer style={styles.footer}>
+        Supported by Suleiman Maumo
       </footer>
-    </div>
+    </main>
   )
 }
 
-/* 🎨 THEME */
-const app = {
-  background: 'linear-gradient(180deg, #020617, #064e3b)',
-  minHeight: '100vh',
-  color: '#ecfeff',
+const styles: any = {
+  main: {
+    background: 'linear-gradient(135deg,#064e3b,#0f766e)',
+    minHeight: '100vh',
+    color: '#fff',
+    padding: 30,
+  },
+  logo: { fontSize: 48, marginBottom: 20 },
+  authBox: { maxWidth: 300 },
+  upload: { margin: 10, padding: 10, background: '#22c55e' },
+  search: { margin: '20px 0', padding: 10, width: '100%' },
+  categories: { display: 'flex', gap: 10 },
+  row: { display: 'flex', gap: 20, overflowX: 'auto' },
+  card: { minWidth: 280 },
+  footer: { marginTop: 50, opacity: 0.6 },
 }
-
-const header = {
-  textAlign: 'center' as const,
-  padding: 40,
-}
-
-const logo = {
-  fontSize: 52,
-  letterSpacing: 3,
-  color: '#22c55e',
-}
-
-const tagline = {
-  fontSize: 18,
-  opacity: 0.9,
-}
-
-const searchBox = {
-  marginTop: 20,
-  padding: 14,
-  width: '80%',
-  maxWidth: 500,
-  borderRadius: 999,
-  border: 'none',
-  fontSize: 16,
-}
-
-const grid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-  gap: 24,
-}
-
-const card = {
-  background: '#022c22',
-  padding: 24,
-  borderRadius: 20,
-  marginBottom: 30,
-}
-
-const videoCard = {
-  background: '#022c22',
-  padding: 20,
-  borderRadius: 20,
-}
-
-const badge = {
-  background: '#facc15',
-  color: '#000',
-  padding: '4px 10px',
-  borderRadius: 999,
-  fontSize: 12,
-}
-
-const creator = {
-  fontSize: 13,
-  opacity: 0.8,
-}
-
-const input = {
-  width: '100%',
-  padding: 12,
-  marginBottom: 10,
-  borderRadius: 10,
-  border: 'none',
-}
-
-const btn = {
-  background: '#22c55e',
-  color: '#022c22',
-  padding: '10px 18px',
-  borderRadius: 10,
-  border: 'none',
-  cursor: 'pointer',
-  marginRight: 8,
-}
-
-const btnAlt = {
-  background: '#38bdf8',
-  color: '#022c22',
-  padding: '10px 18px',
-  borderRadius: 10,
-  border: 'none',
-  cursor: 'pointer',
-}
-
-const likeBtn = {
-  background: '#f43f5e',
-  color: 'white',
-  border: 'none',
-  borderRadius: 999,
-  padding: '8px 14px',
-  marginTop: 10,
-  cursor: 'pointer',
-}
-
-const footer = {
-  textAlign: 'center' as const,
-  padding: 20,
-  opacity: 0.7,
-}
-
