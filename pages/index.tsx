@@ -5,6 +5,7 @@ declare global {
 }
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '../lib/supabaseClient'
 
 type Video = {
@@ -24,23 +25,23 @@ export default function Home() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('Qur’an')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
-  // Auth
+  // AUTH
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => setSession(session)
+    const { data } = supabase.auth.onAuthStateChange((_e, s) =>
+      setSession(s)
     )
 
-    return () => {
-      listener.subscription.unsubscribe()
-    }
+    return () => data.subscription.unsubscribe()
   }, [])
 
-  // Load Cloudinary
+  // CLOUDINARY
   useEffect(() => {
     const s = document.createElement('script')
     s.src = 'https://widget.cloudinary.com/v2.0/global/all.js'
@@ -48,7 +49,7 @@ export default function Home() {
     document.body.appendChild(s)
   }, [])
 
-  // Load videos
+  // LOAD VIDEOS
   const loadVideos = async () => {
     const { data } = await supabase
       .from('videos')
@@ -62,7 +63,7 @@ export default function Home() {
     loadVideos()
   }, [])
 
-  // Upload
+  // UPLOAD
   const openUpload = () => {
     window.cloudinary.openUploadWidget(
       {
@@ -89,12 +90,8 @@ export default function Home() {
     )
   }
 
-  const likeVideo = async (id: number, current: number) => {
-    await supabase
-      .from('videos')
-      .update({ likes: current + 1 })
-      .eq('id', id)
-
+  const likeVideo = async (id: number, likes: number) => {
+    await supabase.from('videos').update({ likes: likes + 1 }).eq('id', id)
     loadVideos()
   }
 
@@ -107,19 +104,48 @@ export default function Home() {
       style={{
         minHeight: '100vh',
         padding: 40,
+        color: '#e5e7eb',
         fontFamily: 'system-ui',
         background:
-          'radial-gradient(circle at top, #0f172a, #020617), repeating-linear-gradient(45deg, rgba(34,211,238,0.05) 0 2px, transparent 2px 20px)',
-        color: '#e5e7eb',
+          'radial-gradient(circle at top, #020617, #000), repeating-linear-gradient(45deg, rgba(34,211,238,.05) 0 2px, transparent 2px 24px)',
       }}
     >
+      {/* TOP RIGHT AUTH */}
+      <div style={{ position: 'relative', height: 60 }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 10 }}>
+          {!session ? (
+            <>
+              <input
+                placeholder="Email"
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ padding: 6, borderRadius: 6 }}
+              />
+              <input
+                placeholder="Password"
+                type="password"
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ padding: 6, borderRadius: 6 }}
+              />
+              <button onClick={() => supabase.auth.signInWithPassword({ email, password })}>
+                Login
+              </button>
+              <button onClick={() => supabase.auth.signUp({ email, password })}>
+                Sign Up
+              </button>
+            </>
+          ) : (
+            <button onClick={() => supabase.auth.signOut()}>Logout</button>
+          )}
+        </div>
+      </div>
+
       {/* TITLE */}
       <h1
         style={{
-          fontSize: 72,
+          fontSize: 80,
           textAlign: 'center',
           color: '#22d3ee',
-          letterSpacing: 2,
+          marginBottom: 10,
         }}
       >
         UmmahTube
@@ -130,7 +156,7 @@ export default function Home() {
       </p>
 
       {/* SEARCH */}
-      <div style={{ textAlign: 'center', marginBottom: 30 }}>
+      <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <input
           placeholder="Search videos…"
           value={search}
@@ -146,63 +172,51 @@ export default function Home() {
 
       {/* UPLOAD */}
       {session && (
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <div style={{ textAlign: 'center', marginBottom: 50 }}>
           <input
-            placeholder="Video title"
+            placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-          />
-          <br />
+          /><br />
           <textarea
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-          />
-          <br />
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
+          /><br />
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
             <option>Qur’an</option>
             <option>Hadith</option>
             <option>Da’wah</option>
-          </select>
-          <br />
+          </select><br />
           <button onClick={openUpload}>Upload Video</button>
         </div>
       )}
 
       {/* VIDEOS */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 20,
-          overflowX: 'auto',
-          paddingBottom: 20,
-        }}
-      >
+      <div style={{ display: 'flex', gap: 20, overflowX: 'auto' }}>
         {filtered.map((v) => (
           <div
             key={v.id}
             style={{
               minWidth: 280,
               background: '#020617',
-              borderRadius: 12,
+              borderRadius: 14,
               padding: 12,
             }}
           >
-            <video
-              src={v.video_url}
-              controls
-              style={{ width: '100%', borderRadius: 8 }}
-            />
+            <video src={v.video_url} controls style={{ width: '100%', borderRadius: 10 }} />
             <h3>{v.title}</h3>
-            <p style={{ fontSize: 14 }}>{v.description}</p>
+            <p>{v.description}</p>
             <p style={{ color: '#22d3ee' }}>{v.category}</p>
 
-            <button onClick={() => likeVideo(v.id, v.likes)}>
-              ❤️ {v.likes}
-            </button>
+            <Link href={`/creator/${v.user_id}`}>
+              <span style={{ cursor: 'pointer', color: '#38bdf8' }}>
+                View Creator
+              </span>
+            </Link>
+
+            <br />
+            <button onClick={() => likeVideo(v.id, v.likes)}>❤️ {v.likes}</button>
           </div>
         ))}
       </div>
@@ -212,20 +226,17 @@ export default function Home() {
         style={{
           marginTop: 80,
           textAlign: 'center',
-          animation: 'fadeIn 3s infinite alternate',
+          animation: 'pulse 3s infinite alternate',
         }}
       >
         <p>
-          Supported by{' '}
-          <span style={{ color: '#22d3ee' }}>Suleiman Maumo</span>
+          Supported by <span style={{ color: '#22d3ee' }}>Suleiman Maumo</span>
         </p>
-        <p style={{ fontSize: 14 }}>
-          © {new Date().getFullYear()} UmmahTube
-        </p>
+        <p>© {new Date().getFullYear()} UmmahTube</p>
 
         <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0.5 }
+          @keyframes pulse {
+            from { opacity: .6 }
             to { opacity: 1 }
           }
         `}</style>
