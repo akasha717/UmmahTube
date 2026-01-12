@@ -18,9 +18,8 @@ export default function Home() {
   const [comments, setComments] = useState<any>({})
   const [commentText, setCommentText] = useState<any>({})
 
-  const [notifications, setNotifications] = useState<any[]>([])
-
   const [search, setSearch] = useState('')
+  const [creatorView, setCreatorView] = useState<any>(null)
 
   // ---------------- AUTH ----------------
   useEffect(() => {
@@ -41,7 +40,7 @@ export default function Home() {
   const loadVideos = async () => {
     const { data } = await supabase
       .from('videos')
-      .select('*')
+      .select('*, profiles(username)')
       .order('created_at', { ascending: false })
 
     setVideos(data || [])
@@ -61,7 +60,6 @@ export default function Home() {
         .from('comments')
         .select('*, profiles(username)')
         .eq('video_id', v.id)
-        .order('created_at')
 
       commentsMap[v.id] = c || []
     }
@@ -73,18 +71,6 @@ export default function Home() {
   useEffect(() => {
     loadVideos()
   }, [])
-
-  // ---------------- NOTIFICATIONS ----------------
-  useEffect(() => {
-    if (!session) return
-
-    supabase
-      .from('notifications')
-      .select('*, profiles!actor_id(username)')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => setNotifications(data || []))
-  }, [session])
 
   // ---------------- CLOUDINARY ----------------
   useEffect(() => {
@@ -103,7 +89,7 @@ export default function Home() {
         uploadPreset: 'unsigned_videos',
         resourceType: 'video',
       },
-      async (_error: any, result: any) => {
+      async (_: any, result: any) => {
         if (result.event === 'success') {
           const title = prompt('Video title?') || ''
           const description = prompt('Description?') || ''
@@ -124,7 +110,7 @@ export default function Home() {
   }
 
   // ---------------- ACTIONS ----------------
-  const likeVideo = async (videoId: string, ownerId: string) => {
+  const likeVideo = async (videoId: string) => {
     if (!session) return
 
     await supabase.from('likes').insert({
@@ -132,20 +118,10 @@ export default function Home() {
       video_id: videoId,
     })
 
-    if (session.user.id !== ownerId) {
-      await supabase.from('notifications').insert({
-        user_id: ownerId,
-        actor_id: session.user.id,
-        video_id: videoId,
-        type: 'like',
-        message: 'liked your video',
-      })
-    }
-
     setLikes({ ...likes, [videoId]: (likes[videoId] || 0) + 1 })
   }
 
-  const addComment = async (videoId: string, ownerId: string) => {
+  const addComment = async (videoId: string) => {
     if (!session || !commentText[videoId]) return
 
     const { data } = await supabase
@@ -158,16 +134,6 @@ export default function Home() {
       .select('*, profiles(username)')
       .single()
 
-    if (session.user.id !== ownerId) {
-      await supabase.from('notifications').insert({
-        user_id: ownerId,
-        actor_id: session.user.id,
-        video_id: videoId,
-        type: 'comment',
-        message: 'commented on your video',
-      })
-    }
-
     setComments({
       ...comments,
       [videoId]: [...(comments[videoId] || []), data],
@@ -176,7 +142,6 @@ export default function Home() {
     setCommentText({ ...commentText, [videoId]: '' })
   }
 
-  // ---------------- AUTH ACTIONS ----------------
   const signIn = async () =>
     supabase.auth.signInWithPassword({ email, password })
 
@@ -185,54 +150,83 @@ export default function Home() {
 
   const signOut = async () => supabase.auth.signOut()
 
-  // ---------------- UI ----------------
-  return (
-    <main style={{ background: '#020617', color: '#e5e7eb', minHeight: '100vh', padding: 30 }}>
-      <h1 style={{ fontSize: 48, color: '#22d3ee' }}>UmmahTube</h1>
-      <p style={{ color: '#94a3b8' }}>A halal video platform</p>
+  // ---------------- CREATOR PAGE ----------------
+  if (creatorView) {
+    return (
+      <main style={{ background: '#020617', color: '#e5e7eb', minHeight: '100vh', padding: 40, textAlign: 'center' }}>
+        <h1 style={{ fontSize: 48, color: '#22d3ee' }}>
+          @{creatorView.username}
+        </h1>
 
-      {/* AUTH */}
+        <button onClick={() => setCreatorView(null)}>← Back</button>
+
+        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 30 }}>
+          {videos
+            .filter(v => v.user_id === creatorView.id)
+            .map(v => (
+              <div key={v.id} style={{ width: 300 }}>
+                <video src={v.video_url} controls width="100%" />
+                <h3>{v.title}</h3>
+              </div>
+            ))}
+        </div>
+      </main>
+    )
+  }
+
+  // ---------------- MAIN UI ----------------
+  return (
+    <main style={{ background: '#020617', color: '#e5e7eb', minHeight: '100vh', padding: 40, textAlign: 'center' }}>
+      <h1 style={{ fontSize: 72, color: '#22d3ee', marginBottom: 10 }}>
+        UmmahTube
+      </h1>
+      <p style={{ color: '#94a3b8', marginBottom: 30 }}>
+        A halal video platform for the Ummah
+      </p>
+
       {!session && (
         <div>
           <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
           <input placeholder="Password" type="password" onChange={e => setPassword(e.target.value)} />
+          <br /><br />
           <button onClick={signIn}>Login</button>
           <button onClick={signUp}>Sign up</button>
         </div>
       )}
 
       {session && (
-        <>
+        <div>
           <button onClick={signOut}>Logout</button>
           <button onClick={openUploadWidget}>Upload Video</button>
-
-          <h3>🔔 Notifications</h3>
-          {notifications.map(n => (
-            <p key={n.id}>
-              <b>@{n.profiles?.username}</b> {n.message}
-            </p>
-          ))}
-        </>
+        </div>
       )}
 
-      <input
-        placeholder="Search videos..."
-        onChange={e => setSearch(e.target.value)}
-        style={{ marginTop: 20 }}
-      />
+      <div style={{ marginTop: 30 }}>
+        <input
+          placeholder="Search videos..."
+          onChange={e => setSearch(e.target.value)}
+          style={{ width: 300 }}
+        />
+      </div>
 
-      {/* VIDEOS */}
-      <div style={{ display: 'flex', gap: 20, overflowX: 'auto', marginTop: 20 }}>
+      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', overflowX: 'auto', marginTop: 40 }}>
         {videos
           .filter(v => v.title.toLowerCase().includes(search.toLowerCase()))
           .map(v => (
-            <div key={v.id} style={{ minWidth: 320, background: '#020617', border: '1px solid #334155', padding: 12 }}>
+            <div key={v.id} style={{ minWidth: 320, border: '1px solid #334155', padding: 14 }}>
               <video src={v.video_url} controls width="300" />
               <h3>{v.title}</h3>
               <p>{v.description}</p>
               <p>📂 {v.category}</p>
 
-              <button onClick={() => likeVideo(v.id, v.user_id)}>
+              <p
+                style={{ color: '#38bdf8', cursor: 'pointer' }}
+                onClick={() => setCreatorView(v.profiles)}
+              >
+                @{v.profiles?.username}
+              </p>
+
+              <button onClick={() => likeVideo(v.id)}>
                 ❤️ {likes[v.id] || 0}
               </button>
 
@@ -247,7 +241,7 @@ export default function Home() {
                     value={commentText[v.id] || ''}
                     onChange={e => setCommentText({ ...commentText, [v.id]: e.target.value })}
                   />
-                  <button onClick={() => addComment(v.id, v.user_id)}>Post</button>
+                  <button onClick={() => addComment(v.id)}>Post</button>
                 </>
               )}
             </div>
