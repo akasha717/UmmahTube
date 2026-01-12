@@ -1,25 +1,10 @@
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Home() {
-    const [session, setSession] = useState<any>(null)
-    const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-  // Get current user on load
-  supabase.auth.getUser().then(({ data }) => {
-    setUser(data.user);
-  });
-
-  // Listen for login/logout changes
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-      
   const [session, setSession] = useState<any>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -35,87 +20,85 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [])
 
+  const signIn = async () => {
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+  }
+
+  const signUp = async () => {
+    await supabase.auth.signUp({
+      email,
+      password,
+    })
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
+
   return (
-    <>
-      {/* your JSX */}
-    </>
-  )
-}
+    <main style={{ padding: '40px', fontFamily: 'sans-serif' }}>
+      <h1>UmmahTube</h1>
 
+      {!session && (
+        <div style={{ maxWidth: '300px' }}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ width: '100%', marginBottom: '8px' }}
+          />
 
-  return () => {
-    subscription.unsubscribe();
-  };
-}, []);
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ width: '100%', marginBottom: '8px' }}
+          />
 
+          <button onClick={signIn} style={{ marginRight: '8px' }}>
+            Login
+          </button>
 
-  return (
-    <main style={{ padding: "2rem" }}>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "2rem",
-        }}
-      >
-        <h1>UmmahTube</h1>
-        {user ? (
-  <button
-    onClick={async () => {
-      await supabase.auth.signOut();
-      location.reload();
-    }}
-  >
-    Logout
-  </button>
-) : (
-  <Link href="/login">Login</Link>
-)}
-{session && (
-  <button
-    style={{
-      padding: '10px 16px',
-      marginTop: '12px',
-      backgroundColor: '#0f766e',
-      color: 'white',
-      borderRadius: '8px',
-      border: 'none',
-      cursor: 'pointer'
-    }}
-  >
-    Upload Video
-  </button>
-)}
+          <button onClick={signUp}>
+            Sign up
+          </button>
+        </div>
+      )}
 
-      </header>
+      {session && (
+        <div>
+          <p>You are logged in</p>
 
-      <p>Halal video platform for the Ummah</p>
+          <button onClick={signOut}>
+            Logout
+          </button>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "1rem",
-          marginTop: "2rem",
-        }}
-      >
-        <div>Video 1</div>
-        <div>Video 2</div>
-        <div>Video 3</div>
-      </div>
+          <br /><br />
 
-      <footer style={{ marginTop: "4rem" }}>
+          <button
+            style={{
+              padding: '10px 16px',
+              backgroundColor: '#0f766e',
+              color: 'white',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            Upload Video
+          </button>
+        </div>
+      )}
+
+      <footer style={{ marginTop: '60px', opacity: 0.6 }}>
         Supported by Suleiman Maumo
       </footer>
     </main>
-  );
+  )
 }
-
-
-
-
-
-
-
 
