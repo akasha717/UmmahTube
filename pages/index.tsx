@@ -18,7 +18,7 @@ export default function Home() {
   } = supabase.auth.onAuthStateChange((_event, session) => {
     setUser(session?.user ?? null);
   });
-      export default function Home() {
+      
   const [session, setSession] = useState<any>(null)
 
   useEffect(() => {
@@ -111,6 +111,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 
