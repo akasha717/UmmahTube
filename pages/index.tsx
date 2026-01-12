@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Home() {
+    const [session, setSession] = useState<any>(null)
     const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 
