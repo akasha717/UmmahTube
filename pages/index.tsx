@@ -130,6 +130,25 @@ const [userLikes, setUserLikes] = useState<Record<string, boolean>>({})
   const signOut = async () => supabase.auth.signOut()
 
   /* ---------- UI ---------- */
+  const toggleLike = async (videoId: string) => {
+  if (!session) {
+    alert('Please login to like videos')
+    if (userLikes[videoId]) {
+    await supabase
+      .from('likes')
+      .delete()
+      .eq('video_id', videoId)
+      .eq('user_id', session.user.id)
+  } else {
+    await supabase.from('likes').insert({
+      video_id: videoId,
+      user_id: session.user.id,
+    })
+  }
+
+  loadVideos()
+  }
+    
   return (
     <main className="page">
       <style jsx global>{`
@@ -287,23 +306,7 @@ const [userLikes, setUserLikes] = useState<Record<string, boolean>>({})
           </button>
         )}
       </div>
-const toggleLike = async (videoId: string) => {
-  if (!session) {
-    alert('Please login to like videos')
-    if (userLikes[videoId]) {
-    await supabase
-      .from('likes')
-      .delete()
-      .eq('video_id', videoId)
-      .eq('user_id', session.user.id)
-  } else {
-    await supabase.from('likes').insert({
-      video_id: videoId,
-      user_id: session.user.id,
-    })
-  }
 
-  loadVideos()
     return
       }   
 
@@ -375,6 +378,7 @@ const toggleLike = async (videoId: string) => {
     </main>
   )
 }
+
 
 
 
