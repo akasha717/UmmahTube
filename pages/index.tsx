@@ -331,17 +331,19 @@ const toggleLike = async (videoId: string) => {
           )
           .map((v) => (
             <div key={v.id} className="card">
-              <video
-  src={v.video_url}
-  controls
-  style={{
-    width: '100%',
-    aspectRatio: '16 / 9',
-    borderRadius: '10px',
-    marginBottom: '8px',
-    background: '#000',
-  }}
-/>
+              <div style={{ width: '100%', marginBottom: '8px' }}>
+  <video
+    src={v.video_url}
+    controls
+    style={{
+      width: '100%',
+      height: '180px',
+      objectFit: 'cover',
+      borderRadius: '10px',
+      background: '#000',
+    }}
+  />
+</div>
 
               <h3>{v.title}</h3>
               <p>{v.category}</p>
@@ -375,5 +377,6 @@ const toggleLike = async (videoId: string) => {
     </main>
   )
 }
+
 
 
