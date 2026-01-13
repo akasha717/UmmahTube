@@ -35,7 +35,7 @@ export default function Home() {
   const loadVideos = async () => {
     const { data } = await supabase
       .from('videos')
-      .select('*, profiles(username)')
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (data) setVideos(data)
@@ -246,3 +246,4 @@ export default function Home() {
     </main>
   )
 }
+
