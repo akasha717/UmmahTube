@@ -16,7 +16,7 @@ export default function Home() {
   const [search, setSearch] = useState('')
   const [cloudinaryReady, setCloudinaryReady] = useState(false)
 
-  /* ---------------- AUTH ---------------- */
+  /* ---------- AUTH ---------- */
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
@@ -31,7 +31,7 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [])
 
-  /* ---------------- LOAD VIDEOS ---------------- */
+  /* ---------- LOAD VIDEOS ---------- */
   const loadVideos = async () => {
     const { data } = await supabase
       .from('videos')
@@ -45,7 +45,7 @@ export default function Home() {
     loadVideos()
   }, [])
 
-  /* ---------------- CLOUDINARY ---------------- */
+  /* ---------- CLOUDINARY ---------- */
   useEffect(() => {
     if (window.cloudinary) {
       setCloudinaryReady(true)
@@ -60,10 +60,7 @@ export default function Home() {
   }, [])
 
   const openUploadWidget = () => {
-    if (!cloudinaryReady) {
-      alert('Uploader still loading, please wait…')
-      return
-    }
+    if (!cloudinaryReady || !session) return
 
     window.cloudinary.openUploadWidget(
       {
@@ -74,7 +71,7 @@ export default function Home() {
       },
       async (_err: any, result: any) => {
         if (result?.event === 'success') {
-          const title = prompt('Video title?') || ''
+          const title = prompt('Video title?') || 'Untitled'
           const description = prompt('Description?') || ''
           const category =
             prompt('Category: Qur’an / Hadith / Daawah') || 'Daawah'
@@ -88,13 +85,13 @@ export default function Home() {
           })
 
           loadVideos()
-          alert('Video uploaded')
+          alert('Video uploaded successfully')
         }
       }
     )
   }
 
-  /* ---------------- AUTH ACTIONS ---------------- */
+  /* ---------- AUTH ACTIONS ---------- */
   const signIn = async () =>
     supabase.auth.signInWithPassword({ email, password })
 
@@ -102,33 +99,126 @@ export default function Home() {
 
   const signOut = async () => supabase.auth.signOut()
 
-  /* ---------------- UI ---------------- */
+  /* ---------- UI ---------- */
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        padding: 40,
-        textAlign: 'center',
-        background:
-          'radial-gradient(circle at top, #fef9c3, #ecfeff), repeating-linear-gradient(45deg, rgba(168,85,247,.15) 0 2px, transparent 2px 28px)',
-        animation: 'bg 20s linear infinite',
-      }}
-    >
+    <main className="page">
       <style jsx global>{`
-        @keyframes bg {
-          from {
-            background-position: 0 0;
+        body {
+          margin: 0;
+          font-family: system-ui, sans-serif;
+        }
+
+        .page {
+          min-height: 100vh;
+          padding: 40px;
+          background: linear-gradient(
+            -45deg,
+            #fef9c3,
+            #dcfce7,
+            #ede9fe,
+            #f0fdfa
+          );
+          background-size: 400% 400%;
+          animation: gradient 20s ease infinite;
+          text-align: center;
+        }
+
+        @keyframes gradient {
+          0% {
+            background-position: 0% 50%;
           }
-          to {
-            background-position: 400px 400px;
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
           }
         }
+
+        .topbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 30px;
+        }
+
+        .logo {
+          font-size: 90px;
+          font-weight: 900;
+          color: #7c3aed;
+        }
+
+        .auth input {
+          padding: 8px;
+          margin-right: 6px;
+          border-radius: 8px;
+          border: 1px solid #a855f7;
+        }
+
+        .auth button {
+          padding: 8px 14px;
+          margin-left: 4px;
+          border-radius: 8px;
+          border: none;
+          background: #7c3aed;
+          color: white;
+          cursor: pointer;
+        }
+
+        .upload {
+          padding: 14px 24px;
+          background: #22c55e;
+          color: white;
+          border-radius: 14px;
+          border: none;
+          cursor: pointer;
+          margin-bottom: 30px;
+          font-size: 16px;
+        }
+
+        .search {
+          width: 60%;
+          padding: 14px;
+          border-radius: 16px;
+          border: 2px solid #7c3aed;
+          margin-bottom: 30px;
+        }
+
+        .videos {
+          display: flex;
+          gap: 24px;
+          overflow-x: auto;
+          justify-content: center;
+          padding-bottom: 20px;
+        }
+
+        .card {
+          width: 320px;
+          padding: 16px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.6);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 20px 40px rgba(124, 58, 237, 0.25);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+          transform: scale(1.06);
+          box-shadow: 0 30px 60px rgba(34, 197, 94, 0.4);
+        }
+
+        footer {
+          margin-top: 90px;
+          color: #6b21a8;
+          animation: float 4s ease-in-out infinite;
+        }
+
         @keyframes float {
           0% {
             transform: translateY(0);
           }
           50% {
-            transform: translateY(-6px);
+            transform: translateY(-8px);
           }
           100% {
             transform: translateY(0);
@@ -137,22 +227,12 @@ export default function Home() {
       `}</style>
 
       {/* TOP BAR */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 30,
-        }}
-      >
-        <h1 style={{ fontSize: 80, color: '#7c3aed' }}>UmmahTube</h1>
+      <div className="topbar">
+        <div className="logo">UmmahTube</div>
 
         {!session ? (
-          <div>
-            <input
-              placeholder="Email"
-              onChange={(e) => setEmail(e.target.value)}
-            />
+          <div className="auth">
+            <input placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
             <input
               type="password"
               placeholder="Password"
@@ -162,66 +242,34 @@ export default function Home() {
             <button onClick={signUp}>Signup</button>
           </div>
         ) : (
-          <button onClick={signOut}>Logout</button>
+          <button className="auth" onClick={signOut}>
+            Logout
+          </button>
         )}
       </div>
 
       {/* UPLOAD */}
       {session && (
-        <button
-          onClick={openUploadWidget}
-          disabled={!cloudinaryReady}
-          style={{
-            padding: '12px 20px',
-            background: '#22c55e',
-            color: 'white',
-            borderRadius: 10,
-            border: 'none',
-            marginBottom: 30,
-            cursor: 'pointer',
-          }}
-        >
+        <button className="upload" onClick={openUploadWidget}>
           Upload Video
         </button>
       )}
 
       {/* SEARCH */}
       <input
+        className="search"
         placeholder="Search videos…"
         onChange={(e) => setSearch(e.target.value)}
-        style={{
-          width: '60%',
-          padding: 12,
-          borderRadius: 12,
-          border: '2px solid #a855f7',
-          marginBottom: 30,
-        }}
       />
 
       {/* VIDEOS */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 24,
-          overflowX: 'auto',
-          justifyContent: 'center',
-        }}
-      >
+      <div className="videos">
         {videos
           .filter((v) =>
             v.title.toLowerCase().includes(search.toLowerCase())
           )
           .map((v) => (
-            <div
-              key={v.id}
-              style={{
-                width: 300,
-                background: '#ffffffcc',
-                padding: 16,
-                borderRadius: 16,
-                animation: 'float 6s ease-in-out infinite',
-              }}
-            >
+            <div key={v.id} className="card">
               <video src={v.video_url} controls width="100%" />
               <h3>{v.title}</h3>
               <p>{v.category}</p>
@@ -231,13 +279,7 @@ export default function Home() {
       </div>
 
       {/* FOOTER */}
-      <footer
-        style={{
-          marginTop: 80,
-          color: '#6b21a8',
-          animation: 'float 4s ease-in-out infinite',
-        }}
-      >
+      <footer>
         <p>
           Supported by <strong>Suleiman Maumo</strong>
         </p>
@@ -246,4 +288,3 @@ export default function Home() {
     </main>
   )
 }
-
