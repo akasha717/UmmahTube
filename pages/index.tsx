@@ -13,6 +13,8 @@ export default function Home() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [videos, setVideos] = useState<any[]>([])
+  const [likes, setLikes] = useState<Record<string, number>>({})
+const [userLikes, setUserLikes] = useState<Record<string, boolean>>({})
   const [search, setSearch] = useState('')
   const [cloudinaryReady, setCloudinaryReady] = useState(false)
 
@@ -33,17 +35,45 @@ export default function Home() {
 
   /* ---------- LOAD VIDEOS ---------- */
   const loadVideos = async () => {
-    const { data } = await supabase
-      .from('videos')
-      .select('*')
-      .order('created_at', { ascending: false })
+  const { data: videoData } = await supabase
+    .from('videos')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-    if (data) setVideos(data)
+  if (!videoData) return
+
+  setVideos(videoData)
+
+  // ---- LOAD LIKE COUNTS ----
+  const { data: likeData } = await supabase
+    .from('likes')
+    .select('video_id')
+
+  const likeCountMap: Record<string, number> = {}
+  likeData?.forEach((l) => {
+    likeCountMap[l.video_id] = (likeCountMap[l.video_id] || 0) + 1
+  })
+  setLikes(likeCountMap)
+
+  // ---- LOAD USER LIKES ----
+  if (session) {
+    const { data: userLikeData } = await supabase
+      .from('likes')
+      .select('video_id')
+      .eq('user_id', session.user.id)
+
+    const userLikeMap: Record<string, boolean> = {}
+    userLikeData?.forEach((l) => {
+      userLikeMap[l.video_id] = true
+    })
+    setUserLikes(userLikeMap)
   }
+}
+
 
   useEffect(() => {
     loadVideos()
-  }, [])
+  }, [session])
 
   /* ---------- CLOUDINARY ---------- */
   useEffect(() => {
@@ -247,6 +277,27 @@ export default function Home() {
           </button>
         )}
       </div>
+const toggleLike = async (videoId: string) => {
+  if (!session) {
+    alert('Please login to like videos')
+    return
+  }
+
+  if (userLikes[videoId]) {
+    await supabase
+      .from('likes')
+      .delete()
+      .eq('video_id', videoId)
+      .eq('user_id', session.user.id)
+  } else {
+    await supabase.from('likes').insert({
+      video_id: videoId,
+      user_id: session.user.id,
+    })
+  }
+
+  loadVideos()
+}
 
       {/* UPLOAD */}
       {session && (
@@ -274,6 +325,21 @@ export default function Home() {
               <h3>{v.title}</h3>
               <p>{v.category}</p>
               <Link href={`/creator/${v.user_id}`}>View Creator</Link>
+              <button
+  onClick={() => toggleLike(v.id)}
+  style={{
+    marginTop: 10,
+    padding: '6px 12px',
+    borderRadius: 10,
+    border: 'none',
+    background: userLikes[v.id] ? '#ef4444' : '#a855f7',
+    color: 'white',
+    cursor: 'pointer',
+  }}
+>
+  ❤️ {likes[v.id] || 0}
+</button>
+
             </div>
           ))}
       </div>
@@ -288,3 +354,4 @@ export default function Home() {
     </main>
   )
 }
+
