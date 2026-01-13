@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function CreatorPage() {
@@ -8,183 +9,146 @@ export default function CreatorPage() {
 
   const [profile, setProfile] = useState<any>(null)
   const [videos, setVideos] = useState<any[]>([])
-  const [session, setSession] = useState<any>(null)
-  const [bio, setBio] = useState('')
+  const [loading, setLoading] = useState(true)
 
+  /* ---------- LOAD CREATOR ---------- */
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
-  }, [])
+    if (!id) return
 
-  useEffect(() => {
-    if (id) {
-      loadProfile()
-      loadVideos()
+    const loadCreator = async () => {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      const { data: videoData } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('user_id', id)
+        .order('created_at', { ascending: false })
+
+      setProfile(profileData)
+      setVideos(videoData || [])
+      setLoading(false)
     }
+
+    loadCreator()
   }, [id])
 
-  const loadProfile = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (data) {
-      setProfile(data)
-      setBio(data.bio || '')
-    }
+  if (loading) {
+    return <p style={{ textAlign: 'center', marginTop: 80 }}>Loading…</p>
   }
 
-  const loadVideos = async () => {
-    const { data } = await supabase
-      .from('videos')
-      .select('*')
-      .eq('user_id', id)
-      .order('created_at', { ascending: false })
-
-    if (data) setVideos(data)
+  if (!profile) {
+    return <p style={{ textAlign: 'center', marginTop: 80 }}>Creator not found</p>
   }
-
-  const updateProfile = async () => {
-    await supabase
-      .from('profiles')
-      .update({ bio })
-      .eq('id', session.user.id)
-
-    alert('Profile updated')
-  }
-
-  if (!profile) return null
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        padding: 40,
-        textAlign: 'center',
-        background:
-          'radial-gradient(circle at top, #fefce8, #ecfeff), repeating-linear-gradient(45deg, rgba(168,85,247,.12) 0 2px, transparent 2px 26px)',
-        animation: 'bgMove 20s linear infinite',
-      }}
-    >
+    <main className="page">
       <style jsx global>{`
-        @keyframes bgMove {
-          from {
-            background-position: 0 0;
-          }
-          to {
-            background-position: 400px 400px;
-          }
+        .page {
+          min-height: 100vh;
+          padding: 40px;
+          background: linear-gradient(
+            -45deg,
+            #fef9c3,
+            #dcfce7,
+            #ede9fe,
+            #f0fdfa
+          );
+          background-size: 400% 400%;
+          animation: gradient 18s ease infinite;
+          text-align: center;
         }
-        @keyframes float {
+
+        @keyframes gradient {
           0% {
-            transform: translateY(0px);
+            background-position: 0% 50%;
           }
           50% {
-            transform: translateY(-6px);
+            background-position: 100% 50%;
           }
           100% {
-            transform: translateY(0px);
+            background-position: 0% 50%;
+          }
+        }
+
+        .card {
+          max-width: 720px;
+          margin: 0 auto 40px;
+          padding: 30px;
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(14px);
+          border-radius: 24px;
+          box-shadow: 0 30px 60px rgba(124, 58, 237, 0.25);
+        }
+
+        .videos {
+          display: flex;
+          gap: 24px;
+          overflow-x: auto;
+          justify-content: center;
+          padding-bottom: 20px;
+        }
+
+        .video {
+          width: 300px;
+          padding: 16px;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.65);
+          box-shadow: 0 20px 40px rgba(34, 197, 94, 0.35);
+        }
+
+        footer {
+          margin-top: 80px;
+          color: #6b21a8;
+          animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-8px);
+          }
+          100% {
+            transform: translateY(0);
           }
         }
       `}</style>
 
       {/* CREATOR CARD */}
-      <div
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          background: '#ffffffcc',
-          padding: 32,
-          borderRadius: 20,
-          boxShadow: '0 20px 40px rgba(0,0,0,.12)',
-          animation: 'float 6s ease-in-out infinite',
-        }}
-      >
-        <h1 style={{ fontSize: 48, color: '#7c3aed' }}>
-          @{profile.username}
+      <div className="card">
+        <h1 style={{ fontSize: 56, color: '#7c3aed' }}>
+          {profile.username || 'Creator'}
         </h1>
 
-        <p style={{ marginTop: 10, color: '#14532d' }}>
-          {profile.bio || 'No bio yet'}
-        </p>
-
-        {/* EDIT PROFILE */}
-        {session?.user?.id === id && (
-          <div style={{ marginTop: 20 }}>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Edit your bio"
-              style={{
-                width: '100%',
-                padding: 12,
-                borderRadius: 10,
-                border: '2px solid #a855f7',
-              }}
-            />
-            <br />
-            <button
-              onClick={updateProfile}
-              style={{
-                marginTop: 10,
-                padding: '10px 18px',
-                background: '#22c55e',
-                color: 'white',
-                borderRadius: 10,
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Save Profile
-            </button>
-          </div>
+        {profile.bio && (
+          <p style={{ marginTop: 10, fontSize: 18 }}>{profile.bio}</p>
         )}
+
+        <Link href="/" style={{ color: '#22c55e', fontWeight: 600 }}>
+          ← Back to UmmahTube
+        </Link>
       </div>
 
       {/* VIDEOS */}
-      <h2 style={{ marginTop: 60, color: '#ca8a04' }}>
-        Videos by Creator
-      </h2>
+      <div className="videos">
+        {videos.length === 0 && <p>No videos yet</p>}
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 24,
-          flexWrap: 'wrap',
-          marginTop: 30,
-        }}
-      >
         {videos.map((v) => (
-          <div
-            key={v.id}
-            style={{
-              width: 300,
-              background: '#f0fdf4',
-              padding: 16,
-              borderRadius: 16,
-            }}
-          >
+          <div key={v.id} className="video">
             <video src={v.video_url} controls width="100%" />
-            <h3 style={{ color: '#166534' }}>{v.title}</h3>
-            <p style={{ fontSize: 14 }}>{v.category}</p>
+            <h3>{v.title}</h3>
+            <p>{v.category}</p>
           </div>
         ))}
       </div>
 
       {/* FOOTER */}
-      <footer
-        style={{
-          marginTop: 80,
-          paddingTop: 30,
-          textAlign: 'center',
-          animation: 'float 4s ease-in-out infinite',
-          color: '#6b21a8',
-        }}
-      >
+      <footer>
         <p>
           Supported by <strong>Suleiman Maumo</strong>
         </p>
