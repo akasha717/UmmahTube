@@ -215,12 +215,22 @@ const [userLikes, setUserLikes] = useState<Record<string, boolean>>({})
         }
 
         .videos {
-          display: flex;
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
           gap: 24px;
-          overflow-x: auto;
-          justify-content: center;
-          padding-bottom: 20px;
+          padding-bottom: 40px;
         }
+@media (max-width: 1200px) {
+  .videos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .videos {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
 
         .card {
           width: 320px;
@@ -321,7 +331,18 @@ const toggleLike = async (videoId: string) => {
           )
           .map((v) => (
             <div key={v.id} className="card">
-              <video src={v.video_url} controls width="100%" />
+              <video
+  src={v.video_url}
+  controls
+  style={{
+    width: '100%',
+    aspectRatio: '16 / 9',
+    borderRadius: '10px',
+    marginBottom: '8px',
+    background: '#000',
+  }}
+/>
+
               <h3>{v.title}</h3>
               <p>{v.category}</p>
               <Link href={`/creator/${v.user_id}`}>View Creator</Link>
@@ -354,4 +375,5 @@ const toggleLike = async (videoId: string) => {
     </main>
   )
 }
+
 
