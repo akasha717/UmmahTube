@@ -14,6 +14,7 @@ export default function Home() {
   const [password, setPassword] = useState('')
   const [videos, setVideos] = useState<any[]>([])
   const [search, setSearch] = useState('')
+  const [cloudinaryReady, setCloudinaryReady] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -153,3 +154,4 @@ export default function Home() {
     </main>
   )
 }
+
