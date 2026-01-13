@@ -290,10 +290,7 @@ const [userLikes, setUserLikes] = useState<Record<string, boolean>>({})
 const toggleLike = async (videoId: string) => {
   if (!session) {
     alert('Please login to like videos')
-    return
-  }
-
-  if (userLikes[videoId]) {
+    if (userLikes[videoId]) {
     await supabase
       .from('likes')
       .delete()
@@ -307,7 +304,8 @@ const toggleLike = async (videoId: string) => {
   }
 
   loadVideos()
-}
+    return
+      }   
 
       {/* UPLOAD */}
       {session && (
@@ -377,6 +375,7 @@ const toggleLike = async (videoId: string) => {
     </main>
   )
 }
+
 
 
 
