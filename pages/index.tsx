@@ -142,6 +142,8 @@ export default function Home() {
           .page {
             min-height: 100vh;
             padding: 32px 48px;
+            display: flex;
+            flex-direction: column;
             background: linear-gradient(
               -45deg,
               #fef9c3,
@@ -152,6 +154,10 @@ export default function Home() {
             background-size: 400% 400%;
             animation: gradient 18s ease infinite;
           }
+
+          .videos {
+            flex: 1;
+}
           
           .videos {
   display: grid;
@@ -223,6 +229,17 @@ export default function Home() {
             100% { background-position: 0% 50%; }
           }
 
+          .logo-wrapper {
+  pointer-events: none;
+}
+
+.center-controls,
+.upload {
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
+}
+
           .topbar {
             display: flex;
             justify-content: space-between;
@@ -258,6 +275,26 @@ export default function Home() {
             -webkit-text-fill-color: transparent;
             animation: logoGlow 6s ease infinite, float 4s ease-in-out infinite;
           }
+
+          footer {
+  margin-top: 90px;
+  color: #6b21a8;
+  text-align: center;
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
 
           @keyframes logoGlow {
             0% { background-position: 0% 50%; }
@@ -377,4 +414,5 @@ export default function Home() {
   )
 
 }
+
 
