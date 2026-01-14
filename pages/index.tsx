@@ -134,7 +134,7 @@ export default function Home() {
   const signOut = async () => supabase.auth.signOut()
 
   return (
-    <main className="page">
+    main className="page">
       <style jsx global>{`
   body {
     margin: 0;
@@ -447,6 +447,7 @@ export default function Home() {
     </main>
   )
 }
+
 
 
 
