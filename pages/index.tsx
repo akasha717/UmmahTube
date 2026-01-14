@@ -179,6 +179,11 @@ export default function Home() {
           text-align: left;
         }
 
+        .card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 36px rgba(34, 197, 94, 0.35);
+        }
+
         footer {
           margin-top: 80px;
           animation: float 4s ease-in-out infinite;
@@ -233,5 +238,6 @@ export default function Home() {
     </main>
   )
 }
+
 
 
