@@ -169,10 +169,16 @@ export default function Home() {
         }
 
         .card {
-          background: rgba(255,255,255,0.7);
+          width: 100%;
           padding: 12px;
-          border-radius: 16px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.65);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 12px 24px rgba(124, 58, 237, 0.18);
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+          text-align: left;
         }
+
         footer {
           margin-top: 80px;
           animation: float 4s ease-in-out infinite;
@@ -227,4 +233,5 @@ export default function Home() {
     </main>
   )
 }
+
 
