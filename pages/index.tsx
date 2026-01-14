@@ -132,7 +132,99 @@ export default function Home() {
 
   return (
     <>
+        return (
+    <>
       <main className="page">
+        <style jsx global>{`
+          body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+          }
+
+          .page {
+            min-height: 100vh;
+            padding: 32px 48px;
+            background: linear-gradient(
+              -45deg,
+              #fef9c3,
+              #dcfce7,
+              #ede9fe,
+              #f0fdfa
+            );
+            background-size: 400% 400%;
+            animation: gradient 18s ease infinite;
+          }
+
+          @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+
+          .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+          }
+
+          .center-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 36px;
+          }
+
+          .logo-wrapper {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+          }
+
+          .logo {
+            font-size: 90px;
+            font-weight: 900;
+            background: linear-gradient(
+              90deg,
+              #7c3aed,
+              #22c55e,
+              #eab308
+            );
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: logoGlow 6s ease infinite, float 4s ease-in-out infinite;
+          }
+
+          @keyframes logoGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+
+          .search-wrapper {
+            position: relative;
+            width: 60%;
+          }
+
+          .search {
+            width: 100%;
+            padding: 14px 48px 14px 18px;
+            border-radius: 999px;
+            border: 2px solid #7c3aed;
+            font-size: 16px;
+          }
+
+          .search-icon {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+          }
+        `}</style>
+
         <div className="topbar">
           <div className="logo-wrapper">
             <div className="logo">UmmahTube</div>
@@ -190,7 +282,9 @@ export default function Home() {
                 <div className="video-title">{v.title}</div>
                 <div className="video-meta">{v.category}</div>
 
-                <Link href={`/creator/${v.user_id}`}>View Creator</Link>
+                <Link href={`/creator/${v.user_id}`}>
+                  View Creator
+                </Link>
 
                 <button
                   onClick={() => toggleLike(v.id)}
@@ -217,13 +311,5 @@ export default function Home() {
           <p>© {new Date().getFullYear()} UmmahTube</p>
         </footer>
       </main>
-
-      <style jsx global>{`
-        body {
-          margin: 0;
-          font-family: system-ui, sans-serif;
-        }
-      `}</style>
     </>
   )
-}
