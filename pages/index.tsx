@@ -52,7 +52,7 @@ console.log('VIDEO ERROR:', error)
   
 useEffect(() => {
     
-  }, [session])
+  }
   
   /* ---------- AUTH ---------- */
   useEffect(() => {
@@ -416,6 +416,7 @@ useEffect(() => {
   )
 
 }
+
 
 
 
