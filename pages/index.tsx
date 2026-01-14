@@ -308,6 +308,15 @@ export default function Home() {
     100% {
       transform: translateY(0);
     }
+
+    .center-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 36px;
+}
+
   }
 `}</style>
 
@@ -325,12 +334,20 @@ export default function Home() {
         )}
       </div>
 
-      {session && <button onClick={openUploadWidget}>Upload Video</button>}
+      <div className="center-controls">
+  {session && (
+    <button className="upload" onClick={openUploadWidget}>
+      Upload Video
+    </button>
+  )}
 
-      <input
-        placeholder="Search..."
-        onChange={(e) => setSearch(e.target.value)}
-      />
+  <input
+    className="search"
+    placeholder="Search videos…"
+    onChange={(e) => setSearch(e.target.value)}
+  />
+</div>
+
 
       <div className="videos">
   {videos
@@ -374,6 +391,7 @@ export default function Home() {
     </main>
   )
 }
+
 
 
 
