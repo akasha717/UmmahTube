@@ -135,6 +135,7 @@ export default function Home() {
     supabase.auth.signUp({ email, password })
   const signOut = async () => supabase.auth.signOut()
 return (
+  <div>
     <main className="page">
       <style jsx global>{`
   body {
@@ -448,6 +449,7 @@ return (
     </main>
   )
 }
+
 
 
 
