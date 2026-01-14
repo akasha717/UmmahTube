@@ -49,8 +49,7 @@ console.log('VIDEO ERROR:', error)
       setUserLikes(ul)
     }
   }
-
-loadVideos()  
+  
 useEffect(() => {
     
   }, [session])
@@ -417,6 +416,7 @@ useEffect(() => {
   )
 
 }
+
 
 
 
