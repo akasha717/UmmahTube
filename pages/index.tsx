@@ -50,8 +50,9 @@ console.log('VIDEO ERROR:', error)
     }
   }
 
-  useEffect(() => {
-    loadVideos()
+loadVideos()  
+useEffect(() => {
+    
   }, [session])
   
   /* ---------- AUTH ---------- */
@@ -416,6 +417,7 @@ console.log('VIDEO ERROR:', error)
   )
 
 }
+
 
 
 
