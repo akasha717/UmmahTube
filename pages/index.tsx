@@ -200,15 +200,22 @@ export default function Home() {
   }
 
   .upload {
-    padding: 14px 26px;
-    background: #22c55e;
-    color: white;
-    border-radius: 14px;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    margin-bottom: 26px;
-  }
+  padding: 14px 28px;
+  background: linear-gradient(90deg, #22c55e, #7c3aed);
+  color: white;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 0 0 rgba(124, 58, 237, 0.6);
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.upload:hover {
+  box-shadow: 0 0 25px rgba(124, 58, 237, 0.7);
+  transform: scale(1.05);
+}
 
   .search {
     width: 60%;
@@ -317,18 +324,67 @@ export default function Home() {
   margin-bottom: 36px;
 }
 
+.logo-wrapper {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.logo {
+  font-size: 90px;
+  font-weight: 900;
+  background: linear-gradient(90deg, #7c3aed, #22c55e, #eab308);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: logoGlow 6s ease infinite, float 4s ease-in-out infinite;
+}
+
+@keyframes logoGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.search-wrapper {
+  position: relative;
+  width: 60%;
+}
+
+.search {
+  width: 100%;
+  padding: 14px 48px 14px 18px;
+  border-radius: 999px;
+  border: 2px solid #7c3aed;
+  font-size: 16px;
+}
+
+.search-icon {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  pointer-events: none;
+}
+
   }
 `}</style>
 
       <div className="topbar">
-        <h1>UmmahTube</h1>
-        {!session ? (
-          <div>
-            <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
-            <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
-            <button onClick={signIn}>Login</button>
-            <button onClick={signUp}>Signup</button>
-          </div>
+  <div className="logo-wrapper">
+    <div className="logo">UmmahTube</div>
+  </div>
+
+  {!session ? (
+    <div className="auth">
+      ...
+    </div>
+  ) : (
+    <button className="auth" onClick={signOut}>Logout</button>
+  )}
+</div>
+
         ) : (
           <button onClick={signOut}>Logout</button>
         )}
@@ -337,15 +393,17 @@ export default function Home() {
       <div className="center-controls">
   {session && (
     <button className="upload" onClick={openUploadWidget}>
-      Upload Video
-    </button>
+  ⬆ Upload
+</button>
   )}
 
+  <div className="search-wrapper">
   <input
     className="search"
-    placeholder="Search videos…"
+    placeholder="Search"
     onChange={(e) => setSearch(e.target.value)}
   />
+  <span className="search-icon">🔍</span>
 </div>
 
 
@@ -391,6 +449,7 @@ export default function Home() {
     </main>
   )
 }
+
 
 
 
