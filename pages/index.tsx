@@ -18,22 +18,7 @@ export default function Home() {
   const [search, setSearch] = useState('')
   const [cloudinaryReady, setCloudinaryReady] = useState(false)
 
-  /* ---------- AUTH ---------- */
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_e, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  /* ---------- LOAD VIDEOS ---------- */
+   /* ---------- LOAD VIDEOS ---------- */
   const { data: videoData, error } = await supabase
   .from('videos')
   .select('*')
@@ -68,6 +53,21 @@ console.log('VIDEO ERROR:', error)
   useEffect(() => {
     loadVideos()
   }, [session])
+  
+  /* ---------- AUTH ---------- */
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   /* ---------- CLOUDINARY ---------- */
   useEffect(() => {
@@ -416,6 +416,7 @@ console.log('VIDEO ERROR:', error)
   )
 
 }
+
 
 
 
