@@ -34,11 +34,13 @@ export default function Home() {
   }, [])
 
   /* ---------- LOAD VIDEOS ---------- */
-  const loadVideos = async () => {
-    const { data: videoData } = await supabase
-      .from('videos')
-      .select('*')
-      .order('created_at', { ascending: false })
+  const { data: videoData, error } = await supabase
+  .from('videos')
+  .select('*')
+  .order('created_at', { ascending: false })
+
+console.log('VIDEO DATA:', videoData)
+console.log('VIDEO ERROR:', error)
 
     if (!videoData) return
     setVideos(videoData)
@@ -414,5 +416,6 @@ export default function Home() {
   )
 
 }
+
 
 
