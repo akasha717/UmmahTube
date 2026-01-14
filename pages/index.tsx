@@ -152,6 +152,70 @@ export default function Home() {
             background-size: 400% 400%;
             animation: gradient 18s ease infinite;
           }
+          
+          .videos {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 22px;
+  padding-bottom: 70px;
+}
+
+@media (max-width: 1400px) {
+  .videos { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 1100px) {
+  .videos { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 800px) {
+  .videos { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 500px) {
+  .videos { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 10px 22px rgba(124, 58, 237, 0.18);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(34, 197, 94, 0.35);
+}
+
+.video-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: black;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.video-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 6px 0 2px;
+}
+
+.video-meta {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
 
           @keyframes gradient {
             0% { background-position: 0% 50%; }
@@ -313,3 +377,4 @@ export default function Home() {
   )
 
 }
+
