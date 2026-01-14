@@ -109,8 +109,6 @@ export default function Home() {
   const toggleLike = async (videoId: string) => {
     if (!session) {
       alert('Login to like videos')
-      return
-    }
 
     if (userLikes[videoId]) {
       await supabase
@@ -449,6 +447,7 @@ export default function Home() {
     </main>
   )
 }
+
 
 
 
