@@ -162,9 +162,12 @@ export default function Home() {
         }
         .videos {
           display: grid;
-          grid-template-columns: repeat(5, 1fr);
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 20px;
+          padding: 0 40px 60px;
+          align-items: start;
         }
+
         .card {
           background: rgba(255,255,255,0.7);
           padding: 12px;
@@ -224,3 +227,4 @@ export default function Home() {
     </main>
   )
 }
+
