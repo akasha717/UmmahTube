@@ -132,8 +132,6 @@ export default function Home() {
 
   return (
     <>
-        return (
-    <>
       <main className="page">
         <style jsx global>{`
           body {
@@ -313,3 +311,4 @@ export default function Home() {
       </main>
     </>
   )
+
